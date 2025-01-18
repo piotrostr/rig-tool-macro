@@ -1,14 +1,41 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, FnArg, ItemFn, PatType};
+use syn::{parse_macro_input, FnArg, ItemFn, PatType, ReturnType, Type};
 
 #[proc_macro_attribute]
 pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
 
     let fn_name = &input_fn.sig.ident;
-    let struct_name = quote::format_ident!("{}", fn_name.to_string().to_uppercase());
+    let struct_name = quote::format_ident!("{}Tool", fn_name.to_string());
+    let static_name = quote::format_ident!("{}", fn_name.to_string().to_uppercase());
     let fn_name_str = fn_name.to_string();
+    let error_name = quote::format_ident!("{}Error", struct_name);
+
+    // Extract return type
+    let return_type = if let ReturnType::Type(_, ty) = &input_fn.sig.output {
+        if let Type::Path(type_path) = ty.as_ref() {
+            if type_path.path.segments[0].ident == "Result" {
+                if let syn::PathArguments::AngleBracketed(args) =
+                    &type_path.path.segments[0].arguments
+                {
+                    if let syn::GenericArgument::Type(t) = &args.args[0] {
+                        t
+                    } else {
+                        panic!("Expected type argument in Result")
+                    }
+                } else {
+                    panic!("Expected angle bracketed arguments in Result")
+                }
+            } else {
+                ty.as_ref()
+            }
+        } else {
+            ty.as_ref()
+        }
+    } else {
+        panic!("Function must return a Result")
+    };
 
     let args = input_fn.sig.inputs.iter().filter_map(|arg| {
         if let FnArg::Typed(PatType { pat, ty, .. }) = arg {
@@ -24,7 +51,13 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let args_struct_name = quote::format_ident!("{}Args", struct_name);
 
     let expanded = quote! {
-        #[derive(Debug, serde::Deserialize, serde::Serialize)]
+        #[derive(Debug, thiserror::Error)]
+        pub enum #error_name {
+            #[error("Tool execution failed: {0}")]
+            ExecutionError(String),
+        }
+
+        #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
         pub struct #struct_name;
 
         #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -37,9 +70,9 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
         impl rig::tool::Tool for #struct_name {
             const NAME: &'static str = #fn_name_str;
 
-            type Error = std::io::Error;
+            type Error = #error_name;
             type Args = #args_struct_name;
-            type Output = u64;
+            type Output = #return_type;
 
             async fn definition(&self, _prompt: String) -> rig::completion::ToolDefinition {
                 rig::completion::ToolDefinition {
@@ -60,9 +93,12 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-                #fn_name(#(args.#arg_names),*)  // Remove the Ok() wrapper since the function already returns Result
+                #fn_name(#(args.#arg_names),*)
+                    .map_err(|e| Self::Error::ExecutionError(e.to_string()))
             }
         }
+
+        pub static #static_name: #struct_name = #struct_name;
     };
 
     expanded.into()
