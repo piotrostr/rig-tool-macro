@@ -2,12 +2,20 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, FnArg, ItemFn, PatType, ReturnType, Type};
 
+fn capitalize(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+    }
+}
+
 #[proc_macro_attribute]
 pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
 
     let fn_name = &input_fn.sig.ident;
-    let struct_name = quote::format_ident!("{}Tool", fn_name.to_string());
+    let struct_name = quote::format_ident!("{}Tool", capitalize(&fn_name.to_string()));
     let static_name = quote::format_ident!("{}", fn_name.to_string().to_uppercase());
     let fn_name_str = fn_name.to_string();
     let error_name = quote::format_ident!("{}Error", struct_name);
@@ -48,7 +56,7 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let arg_names: Vec<_> = args.clone().map(|(pat, _)| pat).collect();
     let arg_types: Vec<_> = args.clone().map(|(_, ty)| ty).collect();
 
-    let args_struct_name = quote::format_ident!("{}Args", struct_name);
+    let args_struct_name = quote::format_ident!("{}Args", capitalize(&struct_name.to_string()));
 
     let expanded = quote! {
         #[derive(Debug, thiserror::Error)]
