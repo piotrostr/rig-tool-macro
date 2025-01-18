@@ -12,19 +12,32 @@ fn subtract(a: i64, b: i64) -> Result<i64, anyhow::Error> {
     Ok(a - b)
 }
 
+#[tool]
+fn multiply(a: i64, b: i64) -> Result<i64, anyhow::Error> {
+    Ok(a * b)
+}
+
+#[tool]
+fn divide(a: i64, b: i64) -> Result<i64, anyhow::Error> {
+    Ok(a / b)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    // Create OpenAI client
-    let openai_client = providers::openai::Client::from_env();
-
-    // Create agent with a single context prompt and two tools
-    let calculator_agent = openai_client
+    let calculator_agent = providers::openai::Client::from_env()
         .agent(providers::openai::GPT_4O)
-        .preamble("You are a calculator here to help the user perform arithmetic operations. Use the tools provided to answer the user's question.")
+        .preamble("You are a calculator. Use the tools provided")
         .max_tokens(1024)
-        .tool(ADD)     // Using the generated constant from our macro
-        .tool(SUBTRACT) // Using the generated constant from our macro
+        .tool(ADD)
+        .tool(SUBTRACT)
+        .tool(MULTIPLY)
+        .tool(DIVIDE)
         .build();
+
+    println!(
+        "Calculator Agent: {:?}",
+        calculator_agent.prompt("what tools do you have?").await?
+    );
 
     // Prompt the agent and print the response
     println!("Calculate 5 - 2");
@@ -37,6 +50,18 @@ async fn main() -> Result<(), anyhow::Error> {
     println!(
         "Calculator Agent: {}",
         calculator_agent.prompt("Calculate 5 + 2").await?
+    );
+
+    println!("Calculate 5 * 2");
+    println!(
+        "Calculator Agent: {}",
+        calculator_agent.prompt("Calculate 5 * 2").await?
+    );
+
+    println!("Calculate 5 / 2");
+    println!(
+        "Calculator Agent: {}",
+        calculator_agent.prompt("Calculate 5 / 2").await?
     );
 
     Ok(())
