@@ -104,6 +104,22 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let args_struct_name = quote::format_ident!("{}Args", to_pascal_case(&fn_name_str));
 
+    let call_impl = if input_fn.sig.asyncness.is_some() {
+        quote! {
+            async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+                #fn_name(#(args.#arg_names),*).await
+                    .map_err(|e| Self::Error::ExecutionError(e.to_string()))
+            }
+        }
+    } else {
+        quote! {
+            async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+                #fn_name(#(args.#arg_names),*)
+                    .map_err(|e| Self::Error::ExecutionError(e.to_string()))
+            }
+        }
+    };
+
     let expanded = quote! {
         #[derive(Debug, thiserror::Error)]
         pub enum #error_name {
@@ -146,10 +162,7 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-                #fn_name(#(args.#arg_names),*)
-                    .map_err(|e| Self::Error::ExecutionError(e.to_string()))
-            }
+            #call_impl
         }
 
         pub static #static_name: #struct_name = #struct_name;
