@@ -14,6 +14,9 @@ fn to_pascal_case(s: &str) -> String {
         .collect()
 }
 
+// TODO add support for more types
+// * vec doesnt work atm
+// * check the format rig expects vectors/nested objects, make this recursive
 fn get_json_type(ty: &Type) -> proc_macro2::TokenStream {
     match ty {
         Type::Path(type_path) => {
@@ -125,7 +128,6 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
                                 }
                             ),*
                         },
-                        "required": [#(stringify!(#arg_names)),*]
                     }),
                 }
             }

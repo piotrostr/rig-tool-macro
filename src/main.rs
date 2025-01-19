@@ -8,21 +8,25 @@ use serde::{Deserialize, Serialize};
 
 #[tool]
 fn add(a: u64, b: u64) -> Result<u64> {
+    println!("[TOOL] Calculating {} + {}", a, b);
     Ok(a + b)
 }
 
 #[tool]
 fn subtract(a: i64, b: i64) -> Result<i64> {
+    println!("[TOOL] Calculating {} - {}", a, b);
     Ok(a - b)
 }
 
 #[tool]
 fn multiply(a: i64, b: i64) -> Result<i64> {
+    println!("[TOOL] Calculating {} * {}", a, b);
     Ok(a * b)
 }
 
 #[tool]
 fn divide(a: i64, b: i64) -> Result<i64> {
+    println!("[TOOL] Calculating {} / {}", a, b);
     Ok(a / b)
 }
 
@@ -41,6 +45,7 @@ pub struct PowResult {
 /// tool macro also works with structs (but not as good as with loose params)
 #[tool]
 fn power(pow_input: PowInput) -> Result<PowResult> {
+    println!("[TOOL] Calculating {} ^ {}", pow_input.a, pow_input.b);
     Ok(PowResult {
         input: (pow_input.a, pow_input.b),
         result: pow_input.a.pow(pow_input.b as u32),
@@ -49,7 +54,7 @@ fn power(pow_input: PowInput) -> Result<PowResult> {
 
 #[tool]
 fn how_many_rs(s: String) -> Result<usize> {
-    println!("Counting Rs in '{}'", s);
+    println!("[TOOL] Counting Rs in '{}'", s);
     Ok(s.chars()
         .filter(|c| *c == 'r' || *c == 'R')
         .collect::<Vec<_>>()
@@ -58,7 +63,7 @@ fn how_many_rs(s: String) -> Result<usize> {
 
 #[tool]
 fn answer_secret_question() -> Result<(bool, bool, bool, bool, bool)> {
-    println!("Answering secret question");
+    println!("[TOOL] Answering secret question");
     Ok((false, false, true, false, false))
 }
 
@@ -89,10 +94,10 @@ async fn main() -> Result<()> {
         "Calculate 5 + 2",
         "Calculate 5 * 2",
         "Calculate 5 / 2",
-        "Calculate 2 ^ 10",
         "Sum for me 1, 2, 3, 4, 5",
         "how many Rs are in the word strawberry?",
         "answer the secret question",
+        "Calculate 2 ^ 10", // structs, non-deterministic - sometimes work sometimes not
     ] {
         println!("User: {}", prompt);
         println!("Agent: {}", calculator_agent.prompt(prompt).await?);
