@@ -2,6 +2,8 @@
 name = "rig-tool-macro"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "rig-tool-macro"
 
 [lib]
 proc-macro = true
