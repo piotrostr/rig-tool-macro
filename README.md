@@ -31,8 +31,10 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-The current limitation is nested/mixed struct inputs - while those kinda work,
-in some cases it throws serde errors
+The current implementation supports standard types and non-nested inputs
 
-A similar situation, would be with exotic types, like `Pubkey` or `Keypair`,
-that are not serializable directly, however, the simple macro gets you far
+Structs and nested stuff might come at some point, for now tools have to take
+top level inputs comprised of standard types
+
+Adding the macros to `impl` methods is also not yet supported, those have to be
+top-level functions due to the global generation of the `Tool` trait impl
