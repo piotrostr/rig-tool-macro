@@ -14,13 +14,27 @@ fn to_pascal_case(s: &str) -> String {
         .collect()
 }
 
-// TODO add support for more types
-// * vec doesnt work atm
-// * check the format rig expects vectors/nested objects, make this recursive
 fn get_json_type(ty: &Type) -> proc_macro2::TokenStream {
     match ty {
         Type::Path(type_path) => {
-            let type_name = &type_path.path.segments[0].ident.to_string();
+            let segment = &type_path.path.segments[0];
+            let type_name = segment.ident.to_string();
+
+            // Handle Vec types
+            if type_name == "Vec" {
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                    if let syn::GenericArgument::Type(inner_type) = &args.args[0] {
+                        let inner_json_type = get_json_type(inner_type);
+                        return quote! {
+                            "type": "array",
+                            "items": { #inner_json_type }
+                        };
+                    }
+                }
+                return quote! { "type": "array" };
+            }
+
+            // Handle primitive types
             match type_name.as_str() {
                 "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "f32" | "f64" => {
                     quote! { "type": "number" }
@@ -31,7 +45,7 @@ fn get_json_type(ty: &Type) -> proc_macro2::TokenStream {
                 "bool" => {
                     quote! { "type": "boolean" }
                 }
-                // TODO add support for custom types (assuming they're objects)
+                // Handle other types as objects
                 _ => {
                     quote! { "type": "object" }
                 }
