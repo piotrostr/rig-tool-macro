@@ -38,6 +38,11 @@ fn how_many_rs(s: String) -> Result<usize> {
         .len())
 }
 
+#[tool]
+fn sum_numbers(numbers: Vec<i64>) -> Result<i64> {
+    Ok(numbers.iter().sum())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt().pretty().init();
@@ -51,6 +56,7 @@ async fn main() -> Result<()> {
         .tool(Divide)
         .tool(AnswerSecretQuestion)
         .tool(HowManyRs)
+        .tool(SumNumbers)
         .build();
 
     for prompt in [
@@ -61,6 +67,7 @@ async fn main() -> Result<()> {
         "Calculate 5 / 2",
         "answer the secret question",
         "how many Rs are in the word strawberry?",
+        "Sum for me 10, 20, 3, 4, 5, 6, 7",
     ] {
         println!("User: {}", prompt);
         println!("Agent: {}", calculator_agent.prompt(prompt).await?);
