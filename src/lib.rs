@@ -2,11 +2,39 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, FnArg, ItemFn, PatType, ReturnType, Type};
 
-fn capitalize(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().chain(chars).collect(),
+fn to_pascal_case(s: &str) -> String {
+    s.split('_')
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => first.to_uppercase().chain(chars).collect(),
+            }
+        })
+        .collect()
+}
+
+fn get_json_type(ty: &Type) -> proc_macro2::TokenStream {
+    match ty {
+        Type::Path(type_path) => {
+            let type_name = &type_path.path.segments[0].ident.to_string();
+            match type_name.as_str() {
+                "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "f32" | "f64" => {
+                    quote! { "type": "number" }
+                }
+                "String" | "str" => {
+                    quote! { "type": "string" }
+                }
+                "bool" => {
+                    quote! { "type": "boolean" }
+                }
+                // TODO add support for custom types (assuming they're objects)
+                _ => {
+                    quote! { "type": "object" }
+                }
+            }
+        }
+        _ => quote! { "type": "object" },
     }
 }
 
@@ -15,9 +43,9 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
 
     let fn_name = &input_fn.sig.ident;
-    let struct_name = quote::format_ident!("{}Tool", capitalize(&fn_name.to_string()));
-    let static_name = quote::format_ident!("{}", capitalize(&fn_name.to_string()));
     let fn_name_str = fn_name.to_string();
+    let struct_name = quote::format_ident!("{}Tool", to_pascal_case(&fn_name_str));
+    let static_name = quote::format_ident!("{}", to_pascal_case(&fn_name_str));
     let error_name = quote::format_ident!("{}Error", struct_name);
 
     // Extract return type
@@ -55,8 +83,9 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let arg_names: Vec<_> = args.clone().map(|(pat, _)| pat).collect();
     let arg_types: Vec<_> = args.clone().map(|(_, ty)| ty).collect();
+    let json_types: Vec<_> = arg_types.iter().map(|ty| get_json_type(ty)).collect();
 
-    let args_struct_name = quote::format_ident!("{}Args", capitalize(&struct_name.to_string()));
+    let args_struct_name = quote::format_ident!("{}Args", to_pascal_case(&fn_name_str));
 
     let expanded = quote! {
         #[derive(Debug, thiserror::Error)]
@@ -91,11 +120,12 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
                         "properties": {
                             #(
                                 stringify!(#arg_names): {
-                                    "type": "number",
+                                    #json_types,
                                     "description": format!("Parameter {}", stringify!(#arg_names))
                                 }
                             ),*
-                        }
+                        },
+                        "required": [#(stringify!(#arg_names)),*]
                     }),
                 }
             }

@@ -1,3 +1,5 @@
+#![allow(non_upper_case_globals)]
+
 use anyhow::Result;
 use rig::completion::Prompt;
 use rig::providers;
@@ -36,7 +38,7 @@ pub struct PowResult {
     result: i64,
 }
 
-/// tool macro also works with structs!
+/// tool macro also works with structs (but not as good as with loose params)
 #[tool]
 fn power(pow_input: PowInput) -> Result<PowResult> {
     Ok(PowResult {
@@ -46,11 +48,23 @@ fn power(pow_input: PowInput) -> Result<PowResult> {
 }
 
 #[tool]
-fn how_many_Rs(s: String) -> Result<usize> {
+fn how_many_rs(s: String) -> Result<usize> {
+    println!("Counting Rs in '{}'", s);
     Ok(s.chars()
         .filter(|c| *c == 'r' || *c == 'R')
         .collect::<Vec<_>>()
         .len())
+}
+
+#[tool]
+fn answer_secret_question() -> Result<(bool, bool, bool, bool, bool)> {
+    println!("Answering secret question");
+    Ok((false, false, true, false, false))
+}
+
+#[tool]
+fn sum_numbers(numbers: Vec<i64>) -> Result<i64> {
+    Ok(numbers.iter().sum())
 }
 
 #[tokio::main]
@@ -65,6 +79,8 @@ async fn main() -> Result<()> {
         .tool(Divide)
         .tool(Power)
         .tool(HowManyRs)
+        .tool(AnswerSecretQuestion)
+        .tool(SumNumbers)
         .build();
 
     for prompt in [
@@ -73,7 +89,10 @@ async fn main() -> Result<()> {
         "Calculate 5 + 2",
         "Calculate 5 * 2",
         "Calculate 5 / 2",
-        "Calculate 5 ^ 2",
+        "Calculate 2 ^ 10",
+        "Sum for me 1, 2, 3, 4, 5",
+        "how many Rs are in the word strawberry?",
+        "answer the secret question",
     ] {
         println!("User: {}", prompt);
         println!("Agent: {}", calculator_agent.prompt(prompt).await?);
