@@ -16,7 +16,7 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let fn_name = &input_fn.sig.ident;
     let struct_name = quote::format_ident!("{}Tool", capitalize(&fn_name.to_string()));
-    let static_name = quote::format_ident!("{}", fn_name.to_string().to_uppercase());
+    let static_name = quote::format_ident!("{}", capitalize(&fn_name.to_string()));
     let fn_name_str = fn_name.to_string();
     let error_name = quote::format_ident!("{}Error", struct_name);
 
