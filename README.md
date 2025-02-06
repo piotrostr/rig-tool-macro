@@ -31,6 +31,21 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
+You can also include descriptions for the tools
+
+```rust
+#[tool(description = "
+    it is important to describe ambiguous tools to LLMs
+
+    https://docs.anthropic.com/en/docs/build-with-claude/tool-use#best-practices-for-tool-definitions
+
+    this works multi-line too!
+")]
+fn asdf() -> Result<()> {
+    Ok(())
+}
+
+
 The current implementation supports standard types and non-nested inputs
 
 Structs and nested stuff might come at some point, for now tools have to take
@@ -38,3 +53,4 @@ top level inputs comprised of standard types
 
 Adding the macros to `impl` methods is also not yet supported, those have to be
 top-level functions due to the global generation of the `Tool` trait impl
+```

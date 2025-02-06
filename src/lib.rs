@@ -1,6 +1,29 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, FnArg, ItemFn, PatType, ReturnType, Type};
+use syn::parse::Parse;
+use syn::{parse_macro_input, FnArg, ItemFn, LitStr, PatType, ReturnType, Type};
+
+// Add this struct to parse the description attribute
+struct ToolAttr {
+    description: Option<String>,
+}
+
+impl Parse for ToolAttr {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut description = None;
+
+        if !input.is_empty() {
+            let name: syn::Ident = input.parse()?;
+            if name == "description" {
+                let _: syn::Token![=] = input.parse()?;
+                let desc: LitStr = input.parse()?;
+                description = Some(desc.value());
+            }
+        }
+
+        Ok(ToolAttr { description })
+    }
+}
 
 fn to_pascal_case(s: &str) -> String {
     s.split('_')
@@ -56,7 +79,8 @@ fn get_json_type(ty: &Type) -> proc_macro2::TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn tool(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as ToolAttr);
     let input_fn = parse_macro_input!(item as ItemFn);
 
     let fn_name = &input_fn.sig.ident;
@@ -120,6 +144,12 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    // Modify the definition implementation to use the description
+    let description = match attr.description {
+        Some(desc) => quote! { #desc.to_string() },
+        None => quote! { format!("Function to {}", Self::NAME) },
+    };
+
     let expanded = quote! {
         #[derive(Debug, thiserror::Error)]
         pub enum #error_name {
@@ -147,7 +177,7 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
             async fn definition(&self, _prompt: String) -> rig::completion::ToolDefinition {
                 rig::completion::ToolDefinition {
                     name: Self::NAME.to_string(),
-                    description: format!("Function to {}", Self::NAME),
+                    description: #description,
                     parameters: serde_json::json!({
                         "type": "object",
                         "properties": {
