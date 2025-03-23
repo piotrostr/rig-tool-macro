@@ -4,6 +4,7 @@ Rather than satisfy the rig `Tool` trait explicitly, you can annotate the tools
 with the `#[tool]` attribute. This will automatically generate the `Tool`
 implementation for you.
 
+
 ```rust
 #[tool]
 fn how_many_rs(s: String) -> anyhow::Result<usize> {
@@ -54,3 +55,9 @@ top level inputs comprised of standard types
 Adding the macros to `impl` methods is also not yet supported, those have to be
 top-level functions due to the global generation of the `Tool` trait impl
 ```
+
+## Peer deps
+
+* thiserror
+* serde-json
+* serde --features derive
