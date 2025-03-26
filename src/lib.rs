@@ -54,27 +54,29 @@ fn get_json_type(ty: &Type) -> proc_macro2::TokenStream {
                         };
                     }
                 }
-                return quote! { "type": "array" };
+                return quote! { "type": "array", "description": " " }; // TODO add those descriptions
             }
 
             // Handle primitive types
             match type_name.as_str() {
                 "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "f32" | "f64" => {
-                    quote! { "type": "number" }
+                    quote! { "type": "number", "description": " " }
                 }
                 "String" | "str" => {
-                    quote! { "type": "string" }
+                    quote! { "type": "string", "description": " " }
                 }
                 "bool" => {
-                    quote! { "type": "boolean" }
+                    quote! { "type": "boolean", "description": " " }
                 }
                 // Handle other types as objects
                 _ => {
-                    quote! { "type": "object" }
+                    quote! { "type": "object", "description": " " }
                 }
             }
         }
-        _ => quote! { "type": "object" },
+        _ => {
+            quote! { "type": "object", "description": " " }
+        }
     }
 }
 
